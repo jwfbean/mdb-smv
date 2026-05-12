@@ -1,0 +1,14 @@
+[
+  { "date": { "$date": "2018-12-01T00:00:00Z" }, "item": "Cake - Chocolate",       "quantity": 2,  "amount": { "$numberDecimal": "60"  } },
+  { "date": { "$date": "2018-12-02T00:00:00Z" }, "item": "Cake - Peanut Butter",   "quantity": 5,  "amount": { "$numberDecimal": "90"  } },
+  { "date": { "$date": "2018-12-02T00:00:00Z" }, "item": "Cake - Red Velvet",      "quantity": 10, "amount": { "$numberDecimal": "200" } },
+  { "date": { "$date": "2018-12-04T00:00:00Z" }, "item": "Cookies - Chocolate Chip","quantity": 20, "amount": { "$numberDecimal": "80"  } },
+  { "date": { "$date": "2018-12-04T00:00:00Z" }, "item": "Cake - Peanut Butter",   "quantity": 10, "amount": { "$numberDecimal": "300" } },
+  { "date": { "$date": "2018-12-04T00:00:00Z" }, "item": "Cake - Red Velvet",      "quantity": 1,  "amount": { "$numberDecimal": "25"  } },
+  { "date": { "$date": "2019-01-25T00:00:00Z" }, "item": "Cake - Chocolate",       "quantity": 2,  "amount": { "$numberDecimal": "60"  } },
+  { "date": { "$date": "2019-01-25T00:00:00Z" }, "item": "Cake - Peanut Butter",   "quantity": 1,  "amount": { "$numberDecimal": "30"  } },
+  { "date": { "$date": "2019-01-26T00:00:00Z" }, "item": "Cake - Red Velvet",      "quantity": 10, "amount": { "$numberDecimal": "200" } },
+  { "date": { "$date": "2019-01-26T00:00:00Z" }, "item": "Cookies - Chocolate Chip","quantity": 10, "amount": { "$numberDecimal": "40"  } },
+  { "date": { "$date": "2019-01-31T00:00:00Z" }, "item": "Cookies - Chocolate Chip","quantity": 30, "amount": { "$numberDecimal": "120" } },
+  { "date": { "$date": "2019-01-31T00:00:00Z" }, "item": "Cake - Red Velvet",      "quantity": 10, "amount": { "$numberDecimal": "180" } }
+]

@@ -1,0 +1,25 @@
+Based on the provided sources, the primary difference between Streaming Materialized Views (SMVs) and Continuous Materialized Views (CMVs) lies in whether they are optimized for low-latency updates or high-throughput data ingestion.
+Here is a detailed breakdown of how they compare:
+Streaming Materialized Views (SMVs)
+Focus: SMVs prioritize low latency, updating in near-real-time (sub-second to low-second update times) as the source data changes
+.
+Processing Pattern: They process data event-by-event or via micro-batches with minimal buffering
+.
+Best For: Operational workloads that require immediately synchronized data, such as live dashboards, real-time analytics, and customer-facing applications
+.
+Example: An order dashboard that updates instantly as new transactions complete
+.
+Continuous Materialized Views (CMVs)
+Focus: CMVs prioritize throughput and write efficiency for processing massive volumes of data, accepting eventual consistency (update times ranging from seconds to minutes)
+.
+Processing Pattern: They utilize larger batches optimized for efficient writes to the database rather than immediate updates
+.
+Best For: Large-scale ingestion tasks, bulk ETL (Extract, Transform, Load) pipelines, and data warehouse synchronization
+.
+Example: Nightly rollups of millions of IoT sensor events into summary tables
+.
+How Atlas Stream Processing (ASP) Handles Both Interestingly, in Atlas Stream Processing, you do not need separate systems to build SMVs and CMVs
+. ASP uses a unified processing engine where a single pipeline definition can serve either workload
+. You can shift a pipeline between an SMV or a CMV simply by tuning parameters like tumbling or sliding window sizes, backpressure handling, and checkpointing configurations to match your desired balance of latency versus throughput
+.
+

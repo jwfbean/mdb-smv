@@ -20,7 +20,7 @@
 //   2. An ASP connection named CONNECTION_NAME registered in your stream processing instance
 //   3. Load and run via the ASP control plane connection in mongosh
 
-const CONNECTION_NAME = "atlas-cluster"; // replace with your ASP connection name
+const CONNECTION_NAME = "MyAtlas"; // replace with your ASP connection name
 
 const pipeline = [
   // Stage 1: Read from the support_tickets change stream.
@@ -118,15 +118,18 @@ const pipeline = [
     $unwind: "$_adjustments"
   },
 
-  // Stage 4: Aggregate deltas into per-priority counts within each 1-minute window.
+  // Stage 4: Aggregate deltas into per-priority counts within each 1-second window.
+  // windowStart is emitted alongside the count so the merge stage can use it as
+  // a high-water mark to guard against at-least-once replay.
   {
     $tumblingWindow: {
-      interval: { size: 1, unit: "minute" },
+      interval: { size: 1, unit: "second" },
       pipeline: [
         {
           $group: {
-            _id:        "$_adjustments._priority",
-            open_count: { $sum: "$_adjustments._delta" }
+            _id:         "$_adjustments._priority",
+            open_count:  { $sum: "$_adjustments._delta" },
+            windowStart: { $first: { $meta: "stream.window.start" } }
           }
         }
       ]
@@ -134,8 +137,11 @@ const pipeline = [
   },
 
   // Stage 5: Apply the windowed delta to the running total in queue_stats.
-  // Identical to simple-pipeline — the $unwind above means each document
-  // reaching $merge already targets exactly one priority bucket.
+  // Identical structure to simple-pipeline. whenMatched guards against at-least-once
+  // replay using a lastWindowStart high-water mark: the delta is only applied if the
+  // incoming window is strictly newer than the last one recorded. A replayed window
+  // fails the $gt check and is silently skipped, preventing double-counting.
+  // whenNotMatched inserts a new document for priority buckets seen for the first time.
   {
     $merge: {
       into: {
@@ -146,7 +152,16 @@ const pipeline = [
       whenMatched: [
         {
           $set: {
-            open_count: { $add: ["$open_count", "$$new.open_count"] }
+            open_count: {
+              $cond: [
+                { $gt: ["$$new.windowStart", { $ifNull: ["$lastWindowStart", new Date(0)] }] },
+                { $add: ["$open_count", "$$new.open_count"] },
+                "$open_count"
+              ]
+            },
+            lastWindowStart: {
+              $max: [{ $ifNull: ["$lastWindowStart", new Date(0)] }, "$$new.windowStart"]
+            }
           }
         }
       ],
@@ -155,7 +170,7 @@ const pipeline = [
   }
 ];
 
-sp.createStreamProcessor("queue_stats_processor", pipeline, {
+sp.createStreamProcessor("queue_stats_escalation", pipeline, {
   dlq: {
     connectionName: CONNECTION_NAME,
     db: "support",

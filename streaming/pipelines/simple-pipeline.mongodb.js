@@ -88,7 +88,9 @@ const pipeline = [
     $match: { _delta: { $ne: 0 } }
   },
 
-  // Stage 4: Aggregate deltas into per-priority counts within each 1-minute window.
+  // Stage 4: Aggregate deltas into per-priority counts within each 1-second window.
+  // windowStart is emitted alongside the count so the merge stage can use it as
+  // a high-water mark to guard against at-least-once replay.
   {
     $tumblingWindow: {
       interval: { size: 1, unit: "second" },
@@ -96,7 +98,8 @@ const pipeline = [
         {
           $group: {
             _id: "$_priority",
-            open_count: { $sum: "$_delta" }
+            open_count: { $sum: "$_delta" },
+            windowStart: { $first: { $meta: "stream.window.start" } }
           }
         }
       ]
@@ -104,8 +107,10 @@ const pipeline = [
   },
 
   // Stage 5: Apply the windowed delta to the running total in queue_stats.
-  // whenMatched uses an update pipeline to add the delta rather than replace,
-  // preserving counts accumulated across previous windows.
+  // whenMatched guards against at-least-once replay using a lastWindowStart
+  // high-water mark: the delta is only applied if the incoming window is strictly
+  // newer than the last one recorded. A replayed window fails the $gt check and
+  // is silently skipped, preventing double-counting.
   // whenNotMatched inserts a new document for priority buckets seen for the first time.
   {
     $merge: {
@@ -117,7 +122,16 @@ const pipeline = [
       whenMatched: [
         {
           $set: {
-            open_count: { $add: ["$open_count", "$$new.open_count"] }
+            open_count: {
+              $cond: [
+                { $gt: ["$$new.windowStart", { $ifNull: ["$lastWindowStart", new Date(0)] }] },
+                { $add: ["$open_count", "$$new.open_count"] },
+                "$open_count"
+              ]
+            },
+            lastWindowStart: {
+              $max: [{ $ifNull: ["$lastWindowStart", new Date(0)] }, "$$new.windowStart"]
+            }
           }
         }
       ],
@@ -126,7 +140,7 @@ const pipeline = [
   }
 ];
 
-sp.createStreamProcessor("queue_stats_processor", pipeline, {
+sp.createStreamProcessor("queue_stats_simple", pipeline, {
   dlq: {
     connectionName: CONNECTION_NAME,
     db: "support",
